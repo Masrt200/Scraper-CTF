@@ -14,7 +14,8 @@ import argparse
 def connect(url):
 	#using stored session cache for connection
 	if os.path.exists(".cache") and not args.dynamic_login:
-		download()
+		if not args.submit:
+			download()
 		cj=cookies.RequestsCookieJar()
 		with open(".cache","rb") as f:
 			cook=pickle.load(f)
@@ -54,20 +55,26 @@ def connect(url):
 
 #scraping the files
 def scrape_challs(s,limit,no):
+	global chall_json
 	for i in range(limit*no,limit*(no+1)):
 		try:
 			chall_url=url+'/api/v1/challenges/'+str(i)
 			result=json.loads(s.get(chall_url).text)
 
 			assert 'success' in result
+
 			attr={'id','name','value','description','category','tags','hints','files'}
 			chall_data={}
 			for i in attr:
 				chall_data[i]=result['data'][i]
 
+			if chall_data['category'] not in chall_json:
+				chall_json[chall_data['category']]=[]
+			chall_json[chall_data['category']].append((chall_data['id'],chall_data['name']))
+
 			local(chall_data)
 		except:
-			pass
+			pass#print("exception")
 		bar.next()
 
 #making directories and downloading the files
@@ -94,7 +101,7 @@ def local(exd):
 		for i in exd['files']:
 			file=url+i
 			filename=re.findall(r'/(.*)\?token',file)[0].split('/')[-1]
-			process=subprocess.Popen(["curl",file,"-o",path+filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			process=subprocess.Popen(["wget",file,"-O",path+filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			process.communicate()
 
 def pathe(path):
@@ -110,15 +117,30 @@ def download():
 class SolverThread(threading.Thread):
 	def run(self):
 		thread_number = int(threading.currentThread().getName())
-		scrape_challs(s,round(100/threads+0.5),thread_number)
+		scrape_challs(s,round(200/threads+0.5),thread_number)
 
 def initialize_parser():
 	
 	parser=argparse.ArgumentParser(description="Capturing the Scrapes")
 	parser.add_argument('--dynamic_login','-d',help="create a new session for a ctf",action="store_true")
 	parser.add_argument('--threads','-t',help="number of threads to use (default -> 8)",type=str)
-	
+	parser.add_argument('--submit','-s',help="submit your flag",action="store_true")
+
 	return parser
+
+def flag_submitter(flag,ide):
+	FLAG_json={"challenge_id": int(ide), "submission": flag}
+
+	home_page = s.get(url+'/challenges')
+	bs_content = bs(home_page.content, "html.parser")
+	script = bs_content.find("script",type="text/javascript").string
+	script=script.replace('\n','').replace('\t','').replace('\'','"')
+	pattern = json.loads(re.findall(r'var init = (.*)',script)[0])
+
+	header={}
+	header["CSRF-Token"]=pattern["csrfNonce"]
+	valid=json.loads(s.post(url+"/api/v1/challenges/attempt",headers=header,json=FLAG_json).text)
+	print(lc+bd+"[*] Result: "+valid["data"]["message"]+rt)
 
 def main():
 	global username,password,url,threads,s,master_path,bar,args
@@ -132,6 +154,7 @@ def main():
 		url=input(lg+"@url: "+rt).rstrip('/')
 		master_path=input(lg+"@scrape to? (relative path): "+rt)+"/"
 		download()
+		f=open(".url","w").write(url)
 
 		f=open(".path","w").write(master_path)
 		if not os.path.exists("master_path"):
@@ -141,27 +164,47 @@ def main():
 		threads=int(args.threads)
 
 	s=connect(url)
-	bar = ShadyBar(pk+bd+'Scraping Data'+rt,fill=lg+">"+rt,suffix=lc+'%(percent)d%% - %(elapsed)ds'+rt,max=round(100/threads+0.5)*threads)
 
-	thread=[]
-	for i in range(threads):
-		string=SolverThread(name = "{}".format(i))
-		string.start()
-		thread.append(string)
-	for i in thread:
-		i.join()
+	if args.submit:
+		flag_data=json.loads(open('.json').read())
+		cn=0
+		for i in flag_data:
+			print(og+bd+"[*] {}".format(i)+rt)
+		gory=input(lg+"@choose category (exact string): "+rt)
+		print(lr+bd+'id\tname'+rt)
+		for i in flag_data[gory]:
+			print(og+bd+"{}\t{}".format(i[0],i[1])+rt)
+		ide=input(lg+"@choose id: "+rt)
+		flag=input(lg+"@flag: "+rt)
+		flag_submitter(flag,ide)
 
-	print(lr+"\nFinished!"+rt)
+
+	
+	if not args.submit:
+		bar = ShadyBar(pk+bd+'Scraping Data'+rt,fill=lg+">"+rt,suffix=lc+'%(percent)d%% - %(elapsed)ds'+rt,max=round(200/threads+0.5)*threads)
+		thread=[]
+		for i in range(threads):
+			string=SolverThread(name = "{}".format(i))
+			string.start()
+			thread.append(string)
+		for i in thread:
+			i.join()
+
+		print(lr+"\nFinished!"+rt)
+		with open(".json","w") as f:
+			f.write(json.dumps(chall_json))
+		f.close()
 
 #defaults (change as you wish and the comment out the required input fields in args.dynamic_login)
 username="Masrt"
 password="12345678"
-url="https://ctf.csivit.com"
+url=open(".url").read()
 downloads=["A"] #must be a string array
 s=None
 bar=None
 args=None
-master_path="../csictf"
+chall_json={}
+#master_path="../csictf"
 threads=8
 
 #colours

@@ -110,8 +110,8 @@ def pathe(path):
 
 def download():
 	global downloads
-	downloads=input(lg+"@download files? (input seperated by spaces, exact)\n(All: A,None: N,specific: Crypto Forensics etc): "+rt)
-	downloads=downloads.split(' ')
+	downloads=input(lg+"@download files? (input seperated by comma, exact)\n(All: A,None: N,specific: Crypto Forensics etc): "+rt)
+	downloads=downloads.split(',')
 	if 'N' in downloads: downloads=[]
 
 class SolverThread(threading.Thread):
@@ -136,11 +136,12 @@ def flag_submitter(flag,ide):
 	script = bs_content.find("script",type="text/javascript").string
 	script=script.replace('\n','').replace('\t','').replace('\'','"')
 	pattern = json.loads(re.findall(r'var init = (.*)',script)[0])
-
-	header={}
-	header["CSRF-Token"]=pattern["csrfNonce"]
-	valid=json.loads(s.post(url+"/api/v1/challenges/attempt",headers=header,json=FLAG_json).text)
-	print(lc+bd+"[*] Result: "+valid["data"]["message"]+rt)
+	header={"CSRF-Token":pattern["csrfNonce"]}
+	try:
+		valid=json.loads(s.post(url+"/api/v1/challenges/attempt",headers=header,json=FLAG_json).text)
+		print(lc+bd+"[*] Result: "+valid["data"]["message"]+rt)
+	except:
+		print("Connection Error")
 
 def main():
 	global username,password,url,threads,s,master_path,bar,args
@@ -166,8 +167,11 @@ def main():
 	s=connect(url)
 
 	if args.submit:
-		flag_data=json.loads(open('.json').read())
-		cn=0
+		try:
+			flag_data=json.loads(open('.json').read())
+		except:
+			print(lc+".json missing! create a new session!!"+rt)
+			sys.exit()
 		for i in flag_data:
 			print(og+bd+"[*] {}".format(i)+rt)
 		gory=input(lg+"@choose category (exact string): "+rt)
@@ -198,13 +202,18 @@ def main():
 #defaults (change as you wish and the comment out the required input fields in args.dynamic_login)
 username="Masrt"
 password="12345678"
-url=open(".url").read()
+
+try:
+	url=open(".url").read()
+except:
+	print(lc+".url missing! create a new session!!"+rt)
+
 downloads=["A"] #must be a string array
 s=None
 bar=None
 args=None
 chall_json={}
-#master_path="../csictf"
+#master_path=""
 threads=8
 
 #colours

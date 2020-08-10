@@ -179,6 +179,7 @@ def main():
 		for i in flag_data[gory]:
 			print(og+bd+"{}\t{}".format(i[0],i[1])+rt)
 		ide=input(lg+"@choose id: "+rt)
+		
 		flag=input(lg+"@flag: "+rt)
 		flag_submitter(flag,ide)
 

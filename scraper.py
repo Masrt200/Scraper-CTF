@@ -11,19 +11,20 @@ from progress.bar import ShadyBar
 import argparse 
 
 
+
 def connect(url):
 	#using stored session cache for connection
-	if os.path.exists(".cache") and not args.dynamic_login:
+	if os.path.exists(cache_path+".cache") and not args.dynamic_login:
 		if not args.submit:
 			download()
 		cj=cookies.RequestsCookieJar()
-		with open(".cache","rb") as f:
+		with open(cache_path+".cache","rb") as f:
 			cook=pickle.load(f)
 		cj._cookies=cook
 		s=Session()
 		s.cookies=cj
 		return s
-	elif not os.path.exists(".cache") and not args.dynamic_login:
+	elif not os.path.exists(cache_path+".cache") and not args.dynamic_login:
 		print(lc+".cache missing! create a new session!!"+rt)
 		sys.exit()
 	#new connection
@@ -48,7 +49,7 @@ def connect(url):
 
 			print(lc+bd+"\x1b[2KConnected!!"+rt)
 			
-			with open(".cache",'wb') as f:
+			with open(cache_path+".cache",'wb') as f:
 				pickle.dump(s.cookies._cookies,f)
 
 			return s
@@ -80,7 +81,7 @@ def scrape_challs(s,limit,no):
 #making directories and downloading the files
 def local(exd):
 	if exd['hints']==[]: exd['hints']='None'
-	master_path=open(".path").read()
+	master_path=open(cache_path+".path").read()
 
 	if not os.path.exists(master_path):
 		pathe(master_path)
@@ -105,9 +106,9 @@ def local(exd):
 			process.communicate()
 
 def pathe(path):
-	process=subprocess.Popen(["mkdir",path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	process=subprocess.Popen(f"mkdir {path}",shell=True)#, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	process.communicate()
-
+	
 def download():
 	global downloads
 	downloads=input(lg+"@download files? (input seperated by comma, exact)\n(All: A,None: N,specific: Crypto Forensics etc): "+rt)
@@ -135,7 +136,7 @@ def flag_submitter(flag,ide):
 	bs_content = bs(home_page.content, "html.parser")
 	script = bs_content.find("script",type="text/javascript").string
 	script=script.replace('\n','').replace('\t','').replace('\'','"')
-	pattern = json.loads(re.findall(r'var init = (.*)',script)[0])
+	pattern = json.loads(re.findall(r"var init = (.*)",script)[0].replace(',}','}'))
 	header={"CSRF-Token":pattern["csrfNonce"]}
 	try:
 		valid=json.loads(s.post(url+"/api/v1/challenges/attempt",headers=header,json=FLAG_json).text)
@@ -144,7 +145,7 @@ def flag_submitter(flag,ide):
 		print("Connection Error")
 
 def main():
-	global username,password,url,threads,s,master_path,bar,args
+	global username,password,url,threads,s,master_path,bar,args,cache_path
 
 	parser=initialize_parser()
 	args=parser.parse_args()
@@ -153,22 +154,50 @@ def main():
 		username=input(lg+"@username: "+rt)
 		password=input(lg+"@password: "+rt)
 		url=input(lg+"@url: "+rt).rstrip('/')
-		master_path=input(lg+"@scrape to? (relative path): "+rt)+"/"
-		download()
-		f=open(".url","w").write(url)
+		master_path=os.getcwd()+"/"+input(lg+"@scrape to? (relative path): "+rt)+"/"
+		
+		cache_path+=url.split("/")[2]+"/"
+		if not os.path.exists(cache_path):
+			pathe(cache_path)
+		else:
+			cache_path=cache_path[:-1]+f"-{username}/"
+			pathe(cache_path)
 
-		f=open(".path","w").write(master_path)
-		if not os.path.exists("master_path"):
+		download()
+		f=open(cache_path+".url","w").write(url)
+
+		f=open(cache_path+".path","w").write(master_path)
+		if not os.path.exists(master_path):
 			pathe(master_path)
 
 	if args.threads !=None:
 		threads=int(args.threads)
 
+	if not args.dynamic_login:
+		print(og+"-- current sessions --"+rt)
+		sessions=os.listdir(cache_path)
+		if len(sessions)>1:
+			for i in range(len(sessions)): print(pk+f"[{i}] "+sessions[i]+rt)
+			current=int(input(lg+"@session no: "+rt))
+			cache_path+=sessions[current]+"/"
+		elif len(sessions)==1:
+			cache_path+=sessions[0]+"/"
+		elif len(sessions)==0:
+			print(lc+"no sessions found! create a new session!!"+rt)
+			sys.exit()
+
+	try:
+		url=open(cache_path+".url").read()
+	except:
+		print(lc+".url missing! create a new session!!"+rt)
+		sys.exit()
+
 	s=connect(url)
 
-	if args.submit:
+	#try checking with both options... args submit and with not args.dynamic_login
+	if args.submit and not args.dynamic_login:
 		try:
-			flag_data=json.loads(open('.json').read())
+			flag_data=json.loads(open(cache_path+'.json').read())
 		except:
 			print(lc+".json missing! create a new session!!"+rt)
 			sys.exit()
@@ -196,26 +225,13 @@ def main():
 			i.join()
 
 		print(lr+"\nFinished!"+rt)
-		with open(".json","w") as f:
+		with open(cache_path+".json","w") as f:
 			f.write(json.dumps(chall_json))
 		f.close()
 
 #defaults (change as you wish and the comment out the required input fields in args.dynamic_login)
 username="Masrt"
 password="12345678"
-
-try:
-	url=open(".url").read()
-except:
-	print(lc+".url missing! create a new session!!"+rt)
-
-downloads=["A"] #must be a string array
-s=None
-bar=None
-args=None
-chall_json={}
-#master_path=""
-threads=8
 
 #colours
 lg='\033[92m'
@@ -226,5 +242,27 @@ pk='\033[95m'
 bd='\033[01m'
 og='\033[33m'
 
+
+url=""
+
+downloads=["A"] #must be a string array
+s=None
+bar=None
+args=None
+chall_json={}
+#master_path=""
+threads=8
+cache_path=""
+
+
 if __name__ == '__main__':
+	#print(f"/home/{os.getlogin()}/.cache")
+	if os.getlogin()=="root" : cache_path="/root/.cache/"
+	else: cache_path=f"/home/{os.getlogin()}/.cache/"
+	if not os.path.exists(cache_path):
+		print("holla")
+		pathe(cache_path)
+	cache_path+="Scaper-V/"
+	if not os.path.exists(cache_path):
+		pathe(cache_path)
 	main()

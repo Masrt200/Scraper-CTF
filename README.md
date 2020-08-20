@@ -77,4 +77,4 @@ if runs, you are good to go!
 
 ## P.S.
 
-Consider sharing any opinions or updates to this project! Also do report of there are any issues!
+Consider sharing any opinions or updates to this project! Also do report if there are any issues!

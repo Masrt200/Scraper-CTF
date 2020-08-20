@@ -35,7 +35,7 @@ So, to solve the above mentioned problem, I bring to you the Ultimate CTF Vaccuu
 
 *-->* Scraping is just the tip of things, we have also provided a **free** *FLAG Submitter* for our open-source customers! If you are not open-source, then what are you doing here? \*=?
 
-*-->* Want more? Well, how about getting rid of the hassle of logining in again and again with new *session saves!* Register in one time and forget about the website entirely... hmm, sounds euphoric!
+*-->* Want more? Well, how about getting rid of the hassle of logging in again and again with new *session saves!* Register in one time and forget about the website entirely... hmm, sounds euphoric!
 
 *-->* currently supports CTFd, CTFx and other platforms coming soon! Mostly because there aren't any to test on!
 
@@ -52,6 +52,8 @@ need motivation for cloning this repo? read below:
 *-->* Make solving CTFs almost offline! Also many a time, flag-submitting is a hassle! The java-script behind responds weirdly and you just sit there not knowing whether your flag got submitted or not!
 
 *-->* Help keep all the files in an organized manner, make write-ups or uploading the files to github!
+
+*-->* can save multiple sessions for a single-ctf or muliple ctfs at the same time; can also be used for a very specific purpose if you know what I mean 😏!
 
 
 ## All you care about!

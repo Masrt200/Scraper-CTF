@@ -66,7 +66,7 @@ then follow these commands!
 
 `cd Scraper-CTF`
 
-`python3 -m pip requirements.txt`
+`pip install -r requirements.txt`
 
 `chmod +x configure.sh`
 

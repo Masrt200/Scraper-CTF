@@ -6,9 +6,10 @@ import subprocess
 import re
 import os,sys
 import pickle
+import getpass
 from progress.bar import ShadyBar
 
-import argparse 
+import argparse
 
 
 
@@ -31,13 +32,13 @@ def connect(url):
 	else:
 		with Session() as s:
 			print(lc+bd+"Connecting...\r"+rt,end='')
-			
+
 			try:
 				site = s.get(url+'/login')
 			except:
 				print(og+bd+"Failed to establish a new connection! Name or service not known"+rt)
 				sys.exit()
-			
+
 			bs_content = bs(site.content, "html.parser")
 			token = bs_content.find("input", {"name":"nonce"})["value"]
 			login_data = {"name":username,"password":password, "nonce":token}
@@ -48,7 +49,7 @@ def connect(url):
 				sys.exit()
 
 			print(lc+bd+"\x1b[2KConnected!!"+rt)
-			
+
 			with open(cache_path+".cache",'wb') as f:
 				pickle.dump(s.cookies._cookies,f)
 
@@ -91,7 +92,7 @@ def local(exd):
 
 	template="# {}\n\n### Points: {}\n\n### Desciption:\n{}\n\n>Hints: {}\n\n#### tags: {}".format(exd['name'],exd['value'],exd['description'],exd['hints'],' '.join(exd['tags']))
 	path=master_path+"./{}/{}/".format(exd['category'],exd['name'].replace(' ','_'))
-	
+
 	pathe(path)
 
 	with open(path+"description.md",'w') as f:
@@ -108,7 +109,7 @@ def local(exd):
 def pathe(path):
 	process=subprocess.Popen(f"mkdir {path}",shell=True)#, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	process.communicate()
-	
+
 def download():
 	global downloads
 	downloads=input(lg+"@download files? (input seperated by comma, exact)\n(All: A,None: N,specific: Crypto Forensics etc): "+rt)
@@ -121,7 +122,7 @@ class SolverThread(threading.Thread):
 		scrape_challs(s,round(200/threads+0.5),thread_number)
 
 def initialize_parser():
-	
+
 	parser=argparse.ArgumentParser(description="Capturing the Scrapes")
 	parser.add_argument('--dynamic_login','-d',help="create a new session for a ctf",action="store_true")
 	parser.add_argument('--threads','-t',help="number of threads to use (default -> 8)",type=str)
@@ -155,7 +156,7 @@ def main():
 		password=input(lg+"@password: "+rt)
 		url=input(lg+"@url: "+rt).rstrip('/')
 		master_path=os.getcwd()+"/"+input(lg+"@scrape to? (relative path): "+rt)+"/"
-		
+
 		cache_path+=url.split("/")[2]+"/"
 		if not os.path.exists(cache_path):
 			pathe(cache_path)
@@ -174,9 +175,9 @@ def main():
 		threads=int(args.threads)
 
 	if not args.dynamic_login:
-		print(og+"-- current sessions --"+rt)
 		sessions=os.listdir(cache_path)
 		if len(sessions)>1:
+			print(og+"-- current sessions --"+rt)
 			for i in range(len(sessions)): print(pk+f"[{i}] "+sessions[i]+rt)
 			current=int(input(lg+"@session no: "+rt))
 			cache_path+=sessions[current]+"/"
@@ -208,12 +209,11 @@ def main():
 		for i in flag_data[gory]:
 			print(og+bd+"{}\t{}".format(i[0],i[1])+rt)
 		ide=input(lg+"@choose id: "+rt)
-		
+
 		flag=input(lg+"@flag: "+rt)
 		flag_submitter(flag,ide)
 
 
-	
 	if not args.submit:
 		bar = ShadyBar(pk+bd+'Scraping Data'+rt,fill=lg+">"+rt,suffix=lc+'%(percent)d%% - %(elapsed)ds'+rt,max=round(200/threads+0.5)*threads)
 		thread=[]
@@ -257,10 +257,10 @@ cache_path=""
 
 if __name__ == '__main__':
 	#print(f"/home/{os.getlogin()}/.cache")
-	if os.getlogin()=="root" : cache_path="/root/.cache/"
-	else: cache_path=f"/home/{os.getlogin()}/.cache/"
+	if getpass.getuser()=="root" : cache_path="/root/.cache/"
+	else: cache_path=f"/home/{getpass.getuser()}/.cache/"
 	if not os.path.exists(cache_path):
-		print("holla")
+		#print("holla")
 		pathe(cache_path)
 	cache_path+="Scaper-V/"
 	if not os.path.exists(cache_path):

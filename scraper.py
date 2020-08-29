@@ -8,6 +8,7 @@ import os,sys
 import pickle
 import getpass
 from progress.bar import ShadyBar
+import signal
 
 import argparse
 
@@ -87,11 +88,11 @@ def local(exd):
 	if not os.path.exists(master_path):
 		pathe(master_path)
 
-	if not os.path.exists(master_path+"./{}".format(exd['category'])):
-		pathe(master_path+"./{}".format(exd['category']))
+	if not os.path.exists(master_path+"/{}".format(exd['category'])):
+		pathe(master_path+"/{}".format(exd['category']))
 
 	template="# {}\n\n### Points: {}\n\n### Desciption:\n{}\n\n>Hints: {}\n\n#### tags: {}".format(exd['name'],exd['value'],exd['description'],exd['hints'],' '.join(exd['tags']))
-	path=master_path+"./{}/{}/".format(exd['category'],exd['name'].replace(' ','_'))
+	path=master_path+"/{}/{}/".format(exd['category'],exd['name'].replace(' ','_'))
 
 	pathe(path)
 
@@ -127,6 +128,7 @@ def initialize_parser():
 	parser.add_argument('--dynamic_login','-d',help="create a new session for a ctf",action="store_true")
 	parser.add_argument('--threads','-t',help="number of threads to use (default -> 8)",type=str)
 	parser.add_argument('--submit','-s',help="submit your flag",action="store_true")
+	parser.add_argument('--clear_sessions','--clear','-cs',help="clear all existing sessions",action="store_true")
 
 	return parser
 
@@ -145,23 +147,59 @@ def flag_submitter(flag,ide):
 	except:
 		print("Connection Error")
 
+def exit_gracefully(signum, frame):
+    # restore the original signal handler as otherwise evil things will happen
+    # in raw_input when CTRL+C is pressed, and our signal handler is not re-entrant
+    signal.signal(signal.SIGINT, original_sigint)
+    print(lc+"\nctrl+c detected! quitting!!"+rt)
+    sys.exit(1)
+
+    '''
+    try:
+        if input("Really quit? (y/n)> ").lower().startswith('y'):
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("Ok ok, quitting")
+        sys.exit(1)'''
+
+    # restore the exit gracefully handler here    
+    signal.signal(signal.SIGINT, exit_gracefully)
+
+
+
 def main():
 	global username,password,url,threads,s,master_path,bar,args,cache_path
 
 	parser=initialize_parser()
 	args=parser.parse_args()
 
+	if args.clear_sessions:
+		if len(os.listdir(f"{cache_path}")) !=0:
+			process=subprocess.Popen(f"rm -r {cache_path}*",shell=True)
+			process.communicate()
+			print(pk+"all sessions cleared"+rt)
+		else:
+			print(pk+"no sessions to clear"+rt)
+		sys.exit()
+
 	if args.dynamic_login:
 		username=input(lg+"@username: "+rt)
 		password=input(lg+"@password: "+rt)
 		url=input(lg+"@url: "+rt).rstrip('/')
-		master_path=os.getcwd()+"/"+input(lg+"@scrape to? (relative path): "+rt)+"/"
+		master_path=os.path.abspath(input(lg+"@scrape to? (relative path): "+rt))
 
-		cache_path+=url.split("/")[2]+"/"
+		try:
+			cache_path+=url.split("/")[2]+"/"
+		except:
+			print(lc+"invalid url"+rt)
+			sys.exit()
+
 		if not os.path.exists(cache_path):
 			pathe(cache_path)
 		else:
-			cache_path=cache_path[:-1]+f"-{username}/"
+			cache_path=cache_path[:-1]+f"-{username.replace(' ','_')}/"
+			#print(cache_path)
 			pathe(cache_path)
 
 		download()
@@ -180,12 +218,16 @@ def main():
 			print(og+"-- current sessions --"+rt)
 			for i in range(len(sessions)): print(pk+f"[{i}] "+sessions[i]+rt)
 			current=int(input(lg+"@session no: "+rt))
+			if current not in range(len(sessions)):
+				print(lc+"session doesnot exists"+rt)
+				sys.exit()
 			cache_path+=sessions[current]+"/"
+				
 		elif len(sessions)==1:
 			cache_path+=sessions[0]+"/"
 		elif len(sessions)==0:
 			print(lc+"no sessions found! create a new session!!"+rt)
-			sys.exit()
+			sys.exit(1)
 
 	try:
 		url=open(cache_path+".url").read()
@@ -265,4 +307,9 @@ if __name__ == '__main__':
 	cache_path+="Scaper-V/"
 	if not os.path.exists(cache_path):
 		pathe(cache_path)
+
+	# store the original SIGINT handler
+	original_sigint = signal.getsignal(signal.SIGINT)
+	signal.signal(signal.SIGINT, exit_gracefully)
+
 	main()

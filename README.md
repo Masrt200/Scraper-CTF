@@ -68,11 +68,7 @@ then follow these commands!
 
 `pip install -r requirements.txt`
 
-`chmod +x configure.sh`
-
-`./configure.sh`
-
-check `scractf -v`
+check `python3 scraper.py -v`
 
 if runs, you are good to go!
 
@@ -80,3 +76,4 @@ if runs, you are good to go!
 ## P.S.
 
 Consider sharing any opinions or updates to this project! Also do report if there are any issues!
+

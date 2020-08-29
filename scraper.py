@@ -129,6 +129,7 @@ def initialize_parser():
 	parser.add_argument('--threads','-t',help="number of threads to use (default -> 8)",type=str)
 	parser.add_argument('--submit','-s',help="submit your flag",action="store_true")
 	parser.add_argument('--clear_sessions','--clear','-cs',help="clear all existing sessions",action="store_true")
+	parser.add_argument('--version','-v',help="shows version",action="store_true")
 
 	return parser
 
@@ -173,6 +174,10 @@ def main():
 
 	parser=initialize_parser()
 	args=parser.parse_args()
+
+	if args.version:
+		print(bd+lg+"Scraper CTF v1.6"+rt)
+		sys.exit(1)
 
 	if args.clear_sessions:
 		if len(os.listdir(f"{cache_path}")) !=0:

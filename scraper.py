@@ -63,7 +63,6 @@ def scrape_challs(s,limit,no):
 		try:
 			chall_url=url+'/api/v1/challenges/'+str(i)
 			result=json.loads(s.get(chall_url).text)
-
 			assert 'success' in result
 
 			attr={'id','name','value','description','category','tags','hints','files'}
@@ -88,13 +87,14 @@ def local(exd):
 	if not os.path.exists(master_path):
 		pathe(master_path)
 
-	if not os.path.exists(master_path+"/{}".format(exd['category'])):
-		pathe(master_path+"/{}".format(exd['category']))
+	if not os.path.exists(master_path+"/{}".format(exd['category'].replace(' ','_'))):
+		pathe(master_path+"/{}".format(exd['category'].replace(' ','_')))
 
 	template="# {}\n\n### Points: {}\n\n### Desciption:\n{}\n\n>Hints: {}\n\n#### tags: {}".format(exd['name'],exd['value'],exd['description'],exd['hints'],' '.join(exd['tags']))
-	path=master_path+"/{}/{}/".format(exd['category'],exd['name'].replace(' ','_'))
+	path=master_path+"/{}/{}/".format(exd['category'].replace(' ','_'),exd['name'].replace(' ','_'))
 
-	pathe(path)
+	if not os.path.exists(path):
+		pathe(path)
 
 	with open(path+"description.md",'w') as f:
 		f.write(template)

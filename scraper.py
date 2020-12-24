@@ -104,11 +104,11 @@ def local(exd):
 		for i in exd['files']:
 			file=url+i
 			filename=re.findall(r'/(.*)\?token',file)[0].split('/')[-1]
-			process=subprocess.Popen(["wget",file,"-O",path+filename], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			process=subprocess.Popen(["wget",file,"-O",f'"{path+filename}"'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			process.communicate()
 
 def pathe(path):
-	process=subprocess.Popen(f"mkdir {path}",shell=True)#, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	process=subprocess.Popen(f'mkdir "{path}"',shell=True)#, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	process.communicate()
 
 def download():
